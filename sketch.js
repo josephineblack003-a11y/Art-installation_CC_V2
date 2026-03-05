@@ -14,9 +14,9 @@ let photoURLs = [
   "smk.10.tif.jpg",
 ];
 let isDestroyed = false;
-let cellSize;
+let cellW, cellH;
 let patternChars = ["/", "\\", "+", "-", ".", ">", "<", "0", "1"];
-let savedPixels = null; // FIX: store pixels before noLoop()
+let savedPixels = null;
 
 function preload() {
   for (let i = 0; i < photoURLs.length; i++) {
@@ -25,9 +25,7 @@ function preload() {
 }
 
 function setup() {
-  let canvas = createCanvas(windowWidth, windowHeight);
-
-  // FIX: broader touch prevention for iOS Safari
+  let canvas = createCanvas(window.innerWidth, window.innerHeight);
   canvas.elt.style.touchAction = "none";
   canvas.elt.style.userSelect = "none";
   canvas.elt.style.webkitUserSelect = "none";
@@ -35,7 +33,6 @@ function setup() {
   document.body.style.position = "fixed";
   document.body.style.width = "100%";
   document.body.style.height = "100%";
-
   calculateGrid();
   initGrid();
   textAlign(CENTER, CENTER);
@@ -43,9 +40,10 @@ function setup() {
 }
 
 function calculateGrid() {
-  cellSize = windowHeight / 5;
-  cols = ceil(windowWidth / cellSize);
-  rows = ceil(windowHeight / cellSize);
+  rows = 5;
+  cols = ceil(window.innerWidth / (window.innerHeight / rows));
+  cellW = window.innerWidth / cols;
+  cellH = window.innerHeight / rows;
 }
 
 function initGrid() {
@@ -60,11 +58,12 @@ function initGrid() {
 
 function draw() {
   if (isDestroyed) {
-    // FIX: capture pixels during draw() before stopping, not after noLoop()
     if (!savedPixels) {
-      drawGrid(); // draw one last frame so pixels are fresh
+      drawGrid();
       savedPixels = true;
-      pixelateCanvas();
+      setTimeout(() => {
+        try { pixelateCanvas(); } catch(e) { console.log("pixelate skipped:", e); }
+      }, 50);
     }
     noLoop();
   } else {
@@ -78,124 +77,4 @@ function drawGrid() {
 
   for (let i = 0; i < cells.length; i++) {
     let col = i % cols;
-    let row = Math.floor(i / cols);
-    let x = col * cellSize;
-    let y = row * cellSize;
-    let cell = cells[i];
-
-    if (!cell) continue;
-
-    if (cell.type === "color") {
-      noStroke();
-      fill(cell.value);
-      rect(x, y, cellSize, cellSize);
-    } else if (cell.type === "pattern") {
-      fill(240);
-      noStroke();
-      rect(x, y, cellSize, cellSize);
-
-      fill(0);
-      textSize(cellSize / 5);
-
-      for (let j = 0; j < 5; j++) {
-        let xOff = noise(i, noiseSpeed, j) * (cellSize - 20) + 10;
-        let yOff = noise(i + 50, noiseSpeed, j + 2) * (cellSize - 20) + 10;
-        let charIndex =
-          (patternChars.indexOf(cell.value) + j) % patternChars.length;
-        text(patternChars[charIndex], x + xOff, y + yOff);
-      }
-    } else if (cell.type === "photo") {
-      image(cell.value, x, y, cellSize, cellSize);
-    }
-  }
-}
-
-function changeCell(index) {
-  let types = ["color", "pattern", "photo"];
-  let success = false;
-  let attempts = 0;
-
-  while (!success && attempts < 15) {
-    let newType = random(types);
-    let newValue;
-    if (newType === "color")
-      newValue = color(random(255), random(255), random(255));
-    else if (newType === "pattern") newValue = random(patternChars);
-    else newValue = random(photos);
-
-    if (countOccurrences(newType, newValue) < 2) {
-      cells[index] = { type: newType, value: newValue };
-      success = true;
-    }
-    attempts++;
-  }
-}
-
-function countOccurrences(type, value) {
-  let count = 0;
-  for (let cell of cells) {
-    if (cell && cell.type === type && cell.value === value) count++;
-  }
-  return count;
-}
-
-// FIX: unified touch handler using rawInput for reliable iOS coords
-function handleInteraction(x, y) {
-  let col = Math.floor(x / cellSize);
-  let row = Math.floor(y / cellSize);
-  let index = col + row * cols;
-  let centerIndex = floor(cells.length / 2);
-
-  if (isDestroyed) {
-    initGrid();
-  } else if (index === centerIndex) {
-    isDestroyed = true;
-  } else if (index >= 0 && index < cells.length) {
-    changeCell(index);
-  }
-}
-
-function touchStarted() {
-  // FIX: use the raw touch event for reliable coordinates on iOS
-  if (touches && touches.length > 0) {
-    handleInteraction(touches[0].x, touches[0].y);
-  }
-  return false; // prevent default scroll/zoom
-}
-
-// FIX: must return false to prevent iOS from stealing touch events mid-gesture
-function touchMoved() {
-  return false;
-}
-
-function touchEnded() {
-  return false;
-}
-
-// Mouse fallback for desktop only
-function mousePressed() {
-  if (touches && touches.length > 0) return false; // skip on touch devices
-  handleInteraction(mouseX, mouseY);
-  return false;
-}
-
-function pixelateCanvas() {
-  loadPixels();
-  let step = 50;
-  for (let y = 0; y < height; y += step) {
-    for (let x = 0; x < width; x += step) {
-      let pixelX = constrain(floor(x + step / 2), 0, width - 1);
-      let pixelY = constrain(floor(y + step / 2), 0, height - 1);
-      let i = (pixelX + pixelY * width) * 4;
-      fill(pixels[i], pixels[i + 1], pixels[i + 2]);
-      noStroke();
-      rect(x, y, step, step);
-    }
-  }
-}
-
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  calculateGrid();
-  initGrid();
-}
+    let row = Math.floor(i
