@@ -45,9 +45,16 @@ function setup() {
 }
 
 function calculateGrid() {
-  cellSize = window.innerHeight / 5;
-  cols = ceil(windowWidth / cellSize);
-  rows = ceil(window.innerHeight / cellSize);
+  let w = window.innerWidth;
+  let h = window.innerHeight;
+  
+  // Find en cellestørrelse der går op i BÅDE bredde og højde
+  cellSize = floor(h / 5);
+  cols = floor(w / cellSize);
+  rows = floor(h / cellSize);
+  
+  // Tilpas canvas præcist til gitteret
+  resizeCanvas(cols * cellSize, rows * cellSize);
 }
 
 function initGrid() {
@@ -247,7 +254,6 @@ function pixelateCanvas() {
 }
 
 function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
   calculateGrid();
   initGrid();
 }
