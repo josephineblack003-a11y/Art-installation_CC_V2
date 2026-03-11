@@ -29,13 +29,16 @@ function preload() {
 
 function setup() {
   let canvas = createCanvas(windowWidth, windowHeight);
-  canvas.style('width', '100vw');
-  canvas.style('height', '100vh');
-  canvas.style('display', 'block');
-
+  
+  canvas.elt.style.position = "fixed";
+  canvas.elt.style.top = "0";
+  canvas.elt.style.left = "0";
+  canvas.elt.style.width = "100%";
+  canvas.elt.style.height = "100%";
   canvas.elt.style.touchAction = "none";
   canvas.elt.style.userSelect = "none";
   canvas.elt.style.webkitUserSelect = "none";
+  
   document.body.style.overflow = "hidden";
   document.body.style.position = "fixed";
   document.body.style.width = "100%";
@@ -45,6 +48,30 @@ function setup() {
   initGrid();
   textAlign(CENTER, CENTER);
   frameRate(30);
+}
+
+function calculateGrid() {
+  let w = window.innerWidth;
+  let h = window.innerHeight;
+  
+  cellSize = floor(min(w, h) / 3);
+  cols = ceil(w / cellSize);
+  rows = ceil(h / cellSize);
+  
+  resizeCanvas(cols * cellSize, rows * cellSize);
+  
+  // Centrer canvas på skærmen så intet stikker ud
+  let canvas = document.querySelector('canvas');
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  canvas.style.position = "fixed";
+  canvas.style.top = "0";
+  canvas.style.left = "0";
+}
+
+function windowResized() {
+  calculateGrid();
+  initGrid();
 }
 
 function calculateGrid() {
