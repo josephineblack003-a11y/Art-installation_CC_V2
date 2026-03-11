@@ -1,5 +1,3 @@
-let synth;
-let collapseOsc;
 let audioStarted = false;
 let cols, rows;
 let cells = [];
@@ -29,16 +27,9 @@ function preload() {
 
 function setup() {
   let canvas = createCanvas(windowWidth, windowHeight);
-  
-  canvas.elt.style.position = "fixed";
-  canvas.elt.style.top = "0";
-  canvas.elt.style.left = "0";
-  canvas.elt.style.width = "100%";
-  canvas.elt.style.height = "100%";
   canvas.elt.style.touchAction = "none";
   canvas.elt.style.userSelect = "none";
   canvas.elt.style.webkitUserSelect = "none";
-  
   document.body.style.overflow = "hidden";
   document.body.style.position = "fixed";
   document.body.style.width = "100%";
@@ -53,41 +44,13 @@ function setup() {
 function calculateGrid() {
   let w = window.innerWidth;
   let h = window.innerHeight;
-  
-  cellSize = floor(min(w, h) / 3);
-  cols = ceil(w / cellSize);
-  rows = ceil(h / cellSize);
-  
-  resizeCanvas(cols * cellSize, rows * cellSize);
-  
-  // Centrer canvas på skærmen så intet stikker ud
-  let canvas = document.querySelector('canvas');
-  canvas.style.width = w + "px";
-  canvas.style.height = h + "px";
-  canvas.style.position = "fixed";
-  canvas.style.top = "0";
-  canvas.style.left = "0";
-}
 
-function windowResized() {
-  calculateGrid();
-  initGrid();
-}
-
-function calculateGrid() {
-  let w = windowWidth;
-  let h = windowHeight;
-  
-  // Beregn cellestørrelse baseret på den korteste side
-  // så der altid er mindst 3 kolonner og 5 rækker
-  let sizeByHeight = floor(h / 5);
-  let sizeByWidth = floor(w / 3);
-  cellSize = min(sizeByHeight, sizeByWidth);
-  
+  // Altid præcis 5 rækker og så mange kolonner som passer
+  cellSize = floor(h / 5);
   cols = floor(w / cellSize);
-  rows = floor(h / cellSize);
-  
-  // Tilpas canvas præcist
+  rows = 5;
+
+  // Canvas fylder præcis hele skærmen — celler strækkes til at passe
   resizeCanvas(w, h);
 }
 
@@ -112,14 +75,11 @@ function playColorTone(colorValue) {
   let r = red(colorValue);
   let g = green(colorValue);
   let b = blue(colorValue);
-
   let freq = map(r * 0.5 + g * 0.3 + b * 0.2, 0, 255, 220, 880);
-
   let pentatonic = [220, 247, 277, 330, 370, 440, 494, 554, 659, 740, 880];
   let closest = pentatonic.reduce((a, b) =>
     Math.abs(b - freq) < Math.abs(a - freq) ? b : a
   );
-
   let osc = new p5.Oscillator("sine");
   osc.freq(closest);
   osc.amp(0.3);
@@ -160,12 +120,15 @@ function draw() {
 
 function drawGrid() {
   let noiseSpeed = frameCount * 0.02;
+  // Celler strækkes præcist til canvas størrelse
+  let drawCellW = width / cols;
+  let drawCellH = height / rows;
 
   for (let i = 0; i < cells.length; i++) {
     let col = i % cols;
     let row = Math.floor(i / cols);
-    let x = col * cellSize;
-    let y = row * cellSize;
+    let x = col * drawCellW;
+    let y = row * drawCellH;
     let cell = cells[i];
 
     if (!cell) continue;
@@ -173,24 +136,22 @@ function drawGrid() {
     if (cell.type === "color") {
       noStroke();
       fill(cell.value);
-      rect(x, y, cellSize, cellSize);
+      rect(x, y, drawCellW, drawCellH);
     } else if (cell.type === "pattern") {
       fill(240);
       noStroke();
-      rect(x, y, cellSize, cellSize);
-
+      rect(x, y, drawCellW, drawCellH);
       fill(0);
-      textSize(cellSize / 5);
-
+      textSize(drawCellW / 5);
       for (let j = 0; j < 5; j++) {
-        let xOff = noise(i, noiseSpeed, j) * (cellSize - 20) + 10;
-        let yOff = noise(i + 50, noiseSpeed, j + 2) * (cellSize - 20) + 10;
+        let xOff = noise(i, noiseSpeed, j) * (drawCellW - 20) + 10;
+        let yOff = noise(i + 50, noiseSpeed, j + 2) * (drawCellH - 20) + 10;
         let charIndex =
           (patternChars.indexOf(cell.value) + j) % patternChars.length;
         text(patternChars[charIndex], x + xOff, y + yOff);
       }
     } else if (cell.type === "photo") {
-      image(cell.value, x, y, cellSize, cellSize);
+      image(cell.value, x, y, drawCellW, drawCellH);
     }
   }
 }
@@ -199,7 +160,6 @@ function changeCell(index) {
   let types = ["color", "pattern", "photo"];
   let success = false;
   let attempts = 0;
-
   while (!success && attempts < 15) {
     let newType = random(types);
     let newValue;
@@ -207,7 +167,6 @@ function changeCell(index) {
       newValue = color(random(255), random(255), random(255));
     else if (newType === "pattern") newValue = random(patternChars);
     else newValue = random(photos);
-
     if (countOccurrences(newType, newValue) < 2) {
       cells[index] = { type: newType, value: newValue };
       success = true;
@@ -226,9 +185,10 @@ function countOccurrences(type, value) {
 
 function handleInteraction(x, y) {
   startAudio();
-
-  let col = Math.floor(x / cellSize);
-  let row = Math.floor(y / cellSize);
+  let drawCellW = width / cols;
+  let drawCellH = height / rows;
+  let col = Math.floor(x / drawCellW);
+  let row = Math.floor(y / drawCellH);
   let index = col + row * cols;
   let centerIndex = floor(cells.length / 2);
 
@@ -270,10 +230,12 @@ function pixelateCanvas() {
   push();
   let step = 50;
   noStroke();
+  let drawCellW = width / cols;
+  let drawCellH = height / rows;
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
-      let col = floor(x / cellSize);
-      let row = floor(y / cellSize);
+      let col = floor(x / drawCellW);
+      let row = floor(y / drawCellH);
       let index = col + row * cols;
       if (cells[index] && cells[index].type === "color") {
         fill(cells[index].value);
