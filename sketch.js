@@ -190,7 +190,7 @@ function handleInteraction(x, y) {
   let col = Math.floor(x / drawCellW);
   let row = Math.floor(y / drawCellH);
   let index = col + row * cols;
-  let centerIndex = floor(cells.length / 2);
+  let centerIndex = floor(random(cells.length));
 
   if (isDestroyed) {
     initGrid();
