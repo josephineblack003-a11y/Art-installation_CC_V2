@@ -1,3 +1,5 @@
+let clickCount = 0;
+let collapseAt = 0;
 let audioStarted = false;
 let cols, rows;
 let cells = [];
@@ -58,6 +60,8 @@ function initGrid() {
   isDestroyed = false;
   savedPixels = null;
   cells = [];
+  clickCount = 0;
+  collapseAt = floor(random(10, 21));
   for (let i = 0; i < cols * rows; i++) {
     changeCell(i);
   }
@@ -190,13 +194,19 @@ function handleInteraction(x, y) {
   let col = Math.floor(x / drawCellW);
   let row = Math.floor(y / drawCellH);
   let index = col + row * cols;
-  let centerIndex = floor(random(cells.length));
 
   if (isDestroyed) {
     initGrid();
-  } else if (index === centerIndex) {
-    playCollapseSound();
-    isDestroyed = true;
+  } else if (index >= 0 && index < cells.length) {
+    clickCount++;
+    changeCell(index);
+    if (cells[index] && cells[index].type === "color") {
+      playColorTone(cells[index].value);
+    }
+    if (clickCount >= collapseAt) {
+      playCollapseSound();
+      isDestroyed = true;
+    }
   } else if (index >= 0 && index < cells.length) {
     changeCell(index);
     if (cells[index] && cells[index].type === "color") {
