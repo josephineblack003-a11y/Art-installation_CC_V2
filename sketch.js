@@ -28,7 +28,10 @@ function preload() {
 }
 
 function setup() {
-  let canvas = createCanvas(windowWidth, window.innerHeight);
+  let canvas = createCanvas(windowWidth, windowHeight);
+  canvas.style('width', '100vw');
+  canvas.style('height', '100vh');
+  canvas.style('display', 'block');
 
   canvas.elt.style.touchAction = "none";
   canvas.elt.style.userSelect = "none";
@@ -45,16 +48,20 @@ function setup() {
 }
 
 function calculateGrid() {
-  let w = window.innerWidth;
-  let h = window.innerHeight;
+  let w = windowWidth;
+  let h = windowHeight;
   
-  // Find en cellestørrelse der går op i BÅDE bredde og højde
-  cellSize = floor(h / 5);
+  // Beregn cellestørrelse baseret på den korteste side
+  // så der altid er mindst 3 kolonner og 5 rækker
+  let sizeByHeight = floor(h / 5);
+  let sizeByWidth = floor(w / 3);
+  cellSize = min(sizeByHeight, sizeByWidth);
+  
   cols = floor(w / cellSize);
   rows = floor(h / cellSize);
   
-  // Tilpas canvas præcist til gitteret
-  resizeCanvas(cols * cellSize, rows * cellSize);
+  // Tilpas canvas præcist
+  resizeCanvas(w, h);
 }
 
 function initGrid() {
